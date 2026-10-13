@@ -32,8 +32,16 @@ def tokens(text: str) -> set[str]:
 
 
 def rank_facts(question: str, items: list[str], k: int = 4) -> list[str]:
-    """Lightweight lexical retrieval: profiles are tiny, so no vector DB is needed."""
+    """Lightweight IDF-weighted lexical retrieval: profiles are tiny, so no vector DB is needed.
+
+    Terms that occur in many facts (like the owner's name) count for less than rare ones.
+    """
+    import math
+
     q = tokens(question)
-    scored = sorted(((len(q & tokens(f)), i, f) for i, f in enumerate(items)), key=lambda x: (-x[0], x[1]))
+    toks = [tokens(f) for f in items]
+    df = {t: sum(t in ft for ft in toks) for t in q}
+    score = lambda ft: sum(math.log(1 + len(items) / df[t]) for t in q & ft)
+    scored = sorted(((score(ft), i, f) for i, (ft, f) in enumerate(zip(toks, items))), key=lambda x: (-x[0], x[1]))
     hits = [f for s, _, f in scored if s > 0][:k]
     return hits or items[:k]
