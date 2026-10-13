@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{NAME}}</title>
+<style>
+ body{font-family:system-ui,sans-serif;margin:0;background:#0f172a;color:#e2e8f0;display:flex;justify-content:center}
+ .card{max-width:420px;width:100%;padding:24px}
+ h1{margin:0 0 4px} .muted{color:#94a3b8} .chip{display:inline-block;background:#1e293b;border-radius:12px;padding:3px 10px;margin:3px;font-size:13px}
+ a.btn,button{background:#6366f1;color:#fff;border:0;border-radius:8px;padding:10px 14px;text-decoration:none;cursor:pointer;display:inline-block;margin-top:8px}
+ #log{background:#1e293b;border-radius:8px;padding:10px;min-height:60px;margin-top:10px;font-size:14px}
+ input{width:70%;padding:10px;border-radius:8px;border:0}
+</style></head>
+<body><div class="card">
+ <h1 id="name">{{NAME}}</h1><div id="role" class="muted"></div>
+ <p id="bio"></p><div id="skills"></div><div id="links"></div>
+ <a class="btn" href="/api/cards/{{SLUG}}/vcard">Save contact</a>
+ <h3>Ask me anything</h3>
+ <form id="ask"><input id="q" placeholder="What does she work on?" required><button>Ask</button></form>
+ <div id="log"></div>
+</div>
+<script>
+const slug = "{{SLUG}}";
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+fetch(`/api/cards/${slug}`).then(r => r.json()).then(c => {
+  document.getElementById("role").textContent = [c.title, c.company].filter(Boolean).join(" @ ");
+  document.getElementById("bio").textContent = c.bio;
+  document.getElementById("skills").innerHTML = c.skills.map(s => `<span class="chip">${esc(s)}</span>`).join("");
+  document.getElementById("links").innerHTML = Object.entries(c.links)
+    .map(([k, v]) => `<a class="chip" href="${encodeURI(v)}" target="_blank" rel="noopener">${esc(k)}</a>`).join("");
+});
+document.getElementById("ask").onsubmit = async e => {
+  e.preventDefault();
+  const q = document.getElementById("q").value, log = document.getElementById("log");
+  log.innerHTML += `<div><b>You:</b> ${esc(q)}</div>`;
+  const r = await fetch(`/api/cards/${slug}/ask`, {method: "POST", headers: {"Content-Type": "application/json"},
+                         body: JSON.stringify({question: q})});
+  log.innerHTML += `<div><b>Bot:</b> ${esc((await r.json()).answer || "Sorry, try again.")}</div>`;
+};
+</script></body></html>

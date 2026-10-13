@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart NFC Card - Editor</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:24px auto;padding:0 16px}
+label{display:block;margin-top:10px;font-weight:600} input,textarea{width:100%;padding:8px;box-sizing:border-box}
+button{margin-top:12px;padding:10px 14px} pre{background:#f1f5f9;padding:10px;white-space:pre-wrap}</style></head>
+<body>
+<h1>Create your smart card</h1>
+<form id="f">
+ <label>Handle (slug)<input name="slug" required pattern="[a-z0-9-]{3,40}"></label>
+ <label>Full name<input name="full_name" required></label>
+ <label>Title<input name="title"></label><label>Company<input name="company"></label>
+ <label>Email<input name="email" type="email"></label><label>Phone<input name="phone"></label>
+ <label>Website<input name="website"></label><label>Location<input name="location"></label>
+ <label>Skills (comma separated)<input name="skills"></label>
+ <label>Highlights (one per line)<textarea name="highlights" rows="4"></textarea></label>
+ <label>LinkedIn<input name="linkedin"></label><label>GitHub<input name="github"></label>
+ <button>Save card</button> <button type="button" id="gen">Generate AI bio</button>
+</form>
+<pre id="out"></pre>
+<script>
+const f = document.getElementById("f"), out = document.getElementById("out");
+const val = n => f.elements[n].value.trim();
+f.onsubmit = async e => {
+  e.preventDefault();
+  const links = {}; if (val("linkedin")) links.linkedin = val("linkedin"); if (val("github")) links.github = val("github");
+  const body = {slug: val("slug"), full_name: val("full_name"), title: val("title"), company: val("company"),
+    email: val("email"), phone: val("phone"), website: val("website"), location: val("location"),
+    skills: val("skills").split(",").map(s => s.trim()).filter(Boolean),
+    highlights: val("highlights").split("\n").map(s => s.trim()).filter(Boolean), links};
+  const r = await fetch("/api/cards", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  out.textContent = JSON.stringify(await r.json(), null, 2);
+};
+document.getElementById("gen").onclick = async () => {
+  const r = await fetch(`/api/cards/${val("slug")}/bio`, {method: "POST", headers: {"Content-Type": "application/json"}, body: "{}"});
+  out.textContent = JSON.stringify(await r.json(), null, 2);
+};
+</script></body></html>
